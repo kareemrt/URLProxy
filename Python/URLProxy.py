@@ -7,18 +7,24 @@ import random                   # Random proxy generation
 import time                     # Pause between requests
 from requests import Session    # Session
 session = Session() # Maintain single session to (substantially) increase sequential request speed 
+file_path = 'credentials.json'
 
-def socks_credentials(file_path = 'IO/credentials.json'):
+def set_credentials_fpath(fpath): 
+    '''Set the filepath for the Socks5 proxy credentials file'''
+    global file_path
+    file_path = fpath
+
+def socks_credentials():
     '''Reads JSON file to load alternative HTML headers, Socks5 proxies, & proxy credentials (user:pass)'''
     # Open credentials file at specified filepath (default: './IO/credentials.json')
     with open(file_path, "r") as c:
         data = json.load(c)
-        credentials = data['credentials']   # Socks5 proxy credentials
+        credentials = data['credentials'][0]   # Socks5 proxy credentials
         headers = [header for header in data['headers']]        # Alternative browser headers
         proxies = [proxy for proxy in data['proxies']]          # Alternative proxies
     return credentials, proxies, headers
 
-user, passw, credentials, IPs, headers = socks_credentials()
+credentials, IPs, headers = socks_credentials()
 Bad_IPs = {}
 
 def force_connect(url, tries = 5):
@@ -55,4 +61,4 @@ def force_connect(url, tries = 5):
     # Connection success
     duration = time.time() - start_time
     print(f'Success (IP: {IP})\tRuntime: {duration} sec.\tAdjusted ({fails} failures): {duration - fails} sec.')
-    return r
+    return r.text

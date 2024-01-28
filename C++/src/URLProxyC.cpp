@@ -149,4 +149,5 @@ namespace py = pybind11;
 PYBIND11_MODULE(URLProxyC, m) {
     // Expose the add function to Python
     m.def("force_connect", &force_connect, "A function that cycles proxies on HTTP requests", py::return_value_policy::move);
+    m.def("set_credentials_fpath", &set_credentials_fpath, "A function that edits proxy credentials' file path");
 }

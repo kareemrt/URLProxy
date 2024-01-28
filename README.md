@@ -1,46 +1,56 @@
 # URLProxy
 
-URLProxy is a light-weight library that allows users to make HTTP GET requests using a Socks5 proxy and customized browser headers. A new proxy and header are rotated upon each request.
+URLProxy is a light-weight library helping users make HTTP GET requests by loading a new socks5 proxy and browser header upon each request.
 
-URLProxy is available as both a Python and C++ library. The C++ library includes a PyBind11 attachment so that the library can be used/imported into python.
+Both Python/C++ options are available. The C++ library can be directly imported into python via the PyBind11 module (.pyd file).
 
-For Python, URLProxy minimally extends the requests' module 'get' method functionality; for C++, URLProxy extends the libcurl library.
+URLProxy extends the 'requests' module in Python, 'libcurl' module in C++.
 
-The purpose of randomly rotating proxies and headers on web-requests is to circumvent server-side blocks; this includes a 'BadIPs' feature, which will remove unresponsive/broken proxies from the selection pool.
+A bad IP pool feature is included to remove dead proxies/speed up performance.
 
 ## Install Instructions
 
 #### Python Library
-- Option 1 (Easy): Install Wheel directly (shell: 'pip install git+https://github.com/kareemrt/URLProxy/Python/dist/URLProxy-[currentversion]-py3-none-any.whl')
-- Option 2 (Easy): Build the wheel from github and install it yourself (shell: 'pip install git+https://github.com/kareemrt/URLProxy/Python.git')
-- Option 3 (Medium): Download, build, & install the wheel yourself
+- (Prebuilt-install): **Install directly** ('pip install git+https://github.com/kareemrt/URLProxy/Python/dist/URLProxy-[currentversion]-py3-none-any.whl')
+- (Self-install): **Build wheel from git, install yourself** ('pip install git+https://github.com/kareemrt/URLProxy/Python.git')
+- (Self-install): **Download, build, & install wheel yourself**
   1. Download the Python folder
   2. Run 'python setup.py sdist bdist_wheel'
   3. Retrieve the '.whl' file in Python/dist and install to your desired venv using 'pip install {file name}.whl'
-- **NO INSTALL Option 4 (Easy):** Download and import the /Python/URLProxy.py module into your desired project
+- (No install): **Download, import /Python/URLProxy.py module into desired project**
 
 #### C++ Library
-**The C++ module was created as a faster alternative to the Python module and can be used within Python code; the instructions differ between using the C++ library in C++ or the C++ library in Python.**
-- For use in C++, you may:
-  - Option 1 (Medium): Recompile the source code into a library yourself using a >= C++17 compiler
+*The C++ module was created as a faster alternative to the Python module and can be used in Python; the C++ library use instructions differ between Python/C++.*
+- C++:
+  - (Recompile - Hard): **Compile source yourself (>=c++17)**
     - g++, msvc, clang, etc.
-  - Option 2 (Easy): Link to a static library included in: C++/prebuilt_modules/URLProxyC.{ext} (.a for Linux/MacOS, .lib for Windows)
-    - Include the header file at C++/include/URLProxyC.h
-  - Option 3 (Easy): Include the dynamic library located at: C++/prebuilt_modules/URLProxyC.{ext} (.so for Unix, .dll for Windows)
+    - dependencies: jsoncpp, libcurl, pybind11 (if using in python)
+  - (Build - Medium): **Use build system to manage depenedencies, compile**
+    - CMAKE
+  - (Link - Easy): **Link prebuilt library**
+    - If static, link: C++/prebuilt/URLProxyC.{.a/.lib}  (Unix/Windows)
+      - include: C++/include/URLProxyC.h
+    - If dynamic, link: C++/prebuilt/URLProxyCdyn.{.so/.dll} (Unix/Windows)
   
-- For use in Python, you may:
-  - Option 1 (Medium): Recompile the source code into a .so(Unix)/.dll(Windows) dynamic library yourself using a >= C++17 compiler
+- Python:
+  - (Recompile - Hard): **Compile source into dynamic library yourself (>=C++17)**
     - g++, msvc, clang, etc.
-    - Place the dynamic library file in your project directory either include 'import URLProxyC' in your python module or use ctypes if that does not work.
-  - Option 2 (Easy-Medium): Recompile the source code into a .pyd PyBind11 library yourself using setup_tools
-    - 'Python setup.py build_ext --inplace'
-    - Place the .pyd file in your project directory and include 'import URLProxyC' in your python module
-  - Option 3 (Easy): Import the prebuilt .pyd library included in: C++/prebuilt_modules/URLProxyC.[extrastuff].pyd
-    - Place the .pyd file in your project directory and include 'import URLProxyC' in your python module
+    - Dyn library -> project directory. Use ctypes. Declare extern if things don't work.
+  - (Build - Medium): **Manage dependencies, use build system to compile**
+    - *setup_tools*: Generate .pyd lib using PyBind11
+      - 'Python setup.py build_ext --inplace'
+      - .pyd -> project directory -> 'import URLProxyC'
+    - *CMAKE (UNIX only)*: Generate .so lib
+      - import using ctypes
+  - (Prebuilt - Easy): Import prebuilt library 
+    - C++/prebuilt/URLProxyC.[ver_info].pyd
+      - .pyd -> project directory -> 'import URLProxyC'
+    - C++/prebuilt/URLProxyC.[ver_info].so
+      - import using ctypes
 
 ## Use Instructions
 
-1. Create a 'credentials.json' file with the following information (a sample has been included):
+1. Create 'credentials.json' file with following (sample included):
 ```json
 {
 "credentials": ["socks5 username:socks5 password"],
@@ -48,11 +58,35 @@ The purpose of randomly rotating proxies and headers on web-requests is to circu
 "proxies": ["proxy1", "proxy2",...]
 }
 ```
-2. Place 'credentials.json' in the ROOT of your project directory
-   - To place elsewhere, call .set_credentials_fpath(str: filePath) after import (e.g., URLProxy.set_credentials_fpath("./IO/credentials.json"))
-3. Import the corresponding library (Python/C++), call library.force_connect(str: url, int: max_tries_per_proxy)
-4. Smile
+2. Place 'credentials.json' in ROOT of project directory
+   - For elsewhere, call .set_credentials_fpath(filePath) after import
+3. Import library (Python/C++), call .force_connect(str: url, int: tries)
+4. Enjoy
    
+## CMake
+
+*Here is a CMakeLists.txt file if you choose to rebuild the library using a build system*
+
+```cmake
+cmake_minimum_required(VERSION 3.10)
+set(PYBIND11_PYTHON_VERSION "3.10")
+set(CMAKE_CXX_STANDARD 20)
+
+project(URLP)
+add_library(URLProxyC SHARED URLProxyC.cpp) # replace SHARED with STATIC if you want a STATIC library
+
+target_include_directories(URLProxyC PRIVATE /usr/include/python3.10)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP jsoncpp)
+
+find_package(jsoncpp REQUIRED)
+target_link_libraries(URLProxyC PRIVATE jsoncpp)
+
+find_package(CURL REQUIRED)
+target_link_libraries(URLProxyC PRIVATE CURL::libcurl)
+```
+
 ## Version History
 
 - 0.13 (Current): C++ release, credentials check changes
